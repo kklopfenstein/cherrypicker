@@ -23,4 +23,5 @@ node_modules
 coverage
 
 # Benchmarking
+*.swp
 benchmarks/graphs

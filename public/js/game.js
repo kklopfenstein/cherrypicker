@@ -13,10 +13,10 @@ socket.on('success', function (data) {
   console.log('success=' + data.success);
 });
 
-socket.on('send id', function (data) {
+/*socket.on('send id', function (data) {
   myId = data.id;
   console.log('client id=' + myId);
-});
+});*/
 
 socket.on('pieces', function (data) {
   console.log('found pieces...');
@@ -31,6 +31,7 @@ var gameCanvas;
 var bContext;
 
 var cherryRed = '#CC3300';
+var myRed = '#800000';
 var black = '#000';
 
 var cherryRadius = 10;
@@ -44,8 +45,9 @@ function init() {
   gameCanvas.width = 640;
   gameCanvas.height = 480; 
   // bContext.fillRect(50, 25, 150, 100);
-  $('#NameModal').modal();
+  $('#NameModal').modal({keyboard: false, show: true});
   socket.emit('get id', { });
+  $('#StartBtn').on('click', sendName);
 }
 
 function clearBoard() {
@@ -53,7 +55,28 @@ function clearBoard() {
   bContext.clearRect(0,0,gameCanvas.width,gameCanvas.height);
 }
 
-function drawCherry(x, y, radius) {
+function sendCollisions(collisions) {
+  console.log('sending collisions');
+  socket.emit('clear pos', collisions);
+}
+
+function sendName() {
+  var name = $('#UserNameField').val();
+  if (name !== undefined && name.length > 5) {
+    socket.emit('identify', name, function(data) {
+      if (data !== undefined && data) {
+        $('#NameModal').modal('hide');
+        myId = name;
+      } else {
+        $('#ErrorMsg').html('Username already taken');
+      }
+    });
+  } else {
+    $('#ErrorMsg').html('Invalid user name'); 
+  }
+}
+
+function drawCherry(x, y, radius, ownCherry) {
   if (radius === undefined) {
     radius = cherryRadius;
   }
@@ -64,7 +87,7 @@ function drawCherry(x, y, radius) {
 
   bContext.strokeStyle = black;
   bContext.stroke();
-  bContext.fillStyle = cherryRed;
+  bContext.fillStyle = ownCherry !== undefined && ownCherry ? myRed : cherryRed;
   bContext.fill();
 
 }
@@ -72,11 +95,16 @@ function drawCherry(x, y, radius) {
 function gameOnClick(e) {
   var pos = getCursorPosition(e);
 
-  console.log("game click at " + pos.x + "," + pos.y);
+  var collisions = getCollidedPieces(pos.x, pos.y);
+  if (collisions.length == 0) {
+    console.log("game click at " + pos.x + "," + pos.y);
 
-  socket.emit('add piece', { x: pos.x, y: pos.y, id: myId });
+    socket.emit('add piece', { x: pos.x, y: pos.y, id: myId });
  
-  drawCherry(pos.x, pos.y);
+    drawCherry(pos.x, pos.y, null, true);
+  } else {
+    sendCollisions(collisions);
+  }
 }
 
 function getCursorPosition(e) {
@@ -104,15 +132,38 @@ function getPieces() {
 
 function drawPieces() {
   console.log('drawing pieces');
+  doForEachPiece(function(p) {
+    if (p.x !== undefined && p.y !== undefined) {
+      drawCherry(p.x, p.y, cherryRadius, p.id == myId);
+    }
+  });
+}
+
+function getCollidedPieces(x, y) {
+  collisions = new Array();
+  doForEachPiece(function(p) {
+    if (p.x !== undefined && p.y !== undefined) {
+      maxX = p.x + cherryRadius;
+      minX = p.x - cherryRadius;
+      maxY = p.y + cherryRadius;
+      minY = p.y - cherryRadius;
+      if ((maxX >= x && minX <= x) && (maxY >= y && minY <= y)) {
+        collisions.push({x: p.x, y: p.y});
+        console.log('collision at ' + p.x + ',' + p.y);
+      }
+    }
+  });
+  return collisions;
+}
+
+function doForEachPiece(f) {
   if (pieces !== undefined) {
     for (var pieceX in pieces) {
       if (pieces.hasOwnProperty(pieceX)) {
         for (var pieceY in pieces[pieceX]) {
           if (pieces[pieceX].hasOwnProperty(pieceY)) {
             p = pieces[pieceX][pieceY];
-            if (p.x !== undefined && p.y !== undefined) {
-              drawCherry(p.x, p.y, cherryRadius);
-            }
+            f(p);
           }
         }
       }
