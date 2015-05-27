@@ -25,6 +25,25 @@ socket.on('pieces', function (data) {
   clearBoard();
   drawPieces();
 });
+
+socket.on('leaderboard', function (data) {
+  console.log(data);
+  if (data !== undefined && data.length > 0) {
+    updateLeaderboard(data);
+  }
+});
+
+function updateLeaderboard(data) {
+  var html = '<ul>';
+  for (var i = 0; i < data.length; i++) {
+    var user = data[i];
+    var name = user.name;
+    var score = user.score;
+    html += '<li><span class="name">'+name+'</span><span class="score">'+score+'</span></li>';
+  }
+  html += '</ul>';
+  $('#Leaderboard').html(html);
+}
 // canvas
 
 var gameCanvas;
@@ -37,6 +56,7 @@ var black = '#000';
 var cherryRadius = 10;
 var dt = new Date();
 var rps = 1;
+var lastUpdate = (new Date()).getTime();
 
 function init() {
   gameCanvas = document.getElementById('GameCanvas');
@@ -62,13 +82,13 @@ function sendCollisions(collisions) {
 
 function sendName() {
   var name = $('#UserNameField').val();
-  if (name !== undefined && name.length > 5) {
+  if (name !== undefined && name.length > 0) {
     socket.emit('identify', name, function(data) {
       if (data !== undefined && data) {
         $('#NameModal').modal('hide');
-        myId = name;
+        myId = validator.escape(name);
       } else {
-        $('#ErrorMsg').html('Username already taken');
+        $('#ErrorMsg').html('Invalid user name');
       }
     });
   } else {

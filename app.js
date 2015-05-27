@@ -1,5 +1,6 @@
 var express = require('express');
 var app = express();
+var validator = require('validator');
 var server = require('http').Server(app);
 var io = require('socket.io')(server);
 
@@ -28,13 +29,46 @@ io.on('connection', function (socket) {
   socket.on('identify', function(data, fn) {
     identify(data, fn); 
   });
+
+  setInterval(function() {
+    console.log('sending broadcast');
+    socket.broadcast.emit('leaderboard', getLeaderboard());
+  }, 1500);
+
 });
 
+function getLeaderboard() {
+  var userArr = new Array();
+  if (users !== undefined) {
+    for (key in users) {
+      if (users.hasOwnProperty(key)) {
+        user = users[key];
+        user.name = key;
+        userArr.push(user);
+      }
+    }
+  }
+
+  userArr.sort(function (a, b) {
+    if (a.score > b.score)
+      return -1;
+    else if (a.score < b.score)
+      return 1;
+    else
+      return 0;
+  });
+  if (userArr.length > 75) {
+    return userArr.slice(0, 75);
+  } else {
+    return userArr;
+  }
+}
 
 function identify(data, fn) {
-  if (data !== undefined && data.length > 4 && users[data] == undefined) {
+  if (data !== undefined && data.length > 0 && users[data] == undefined && data.length < 15) {
+    data = validator.escape(data);
     console.log('user ' + data + ' has entered the game');
-    users[data] = {score: 0};
+    users[data] = {name: data, score: 0};
     fn(true);
   } else {
     fn(false);
@@ -68,12 +102,14 @@ function clearPos(positions) {
 function addPiece(socket, data) {
   console.log("adding piece: " + data);
   if (data !== undefined && data.id !== undefined
-      && data.x !== undefined && data.y !== undefined) {
+      && data.x !== undefined && data.y !== undefined && 
+      !isNaN(data.x) && !isNaN(data.y)) {
     console.log(data.x + ',' + data.y);
     if (board[data.x] === undefined) {
       board[data.x] = { }
     }
     board[data.x][data.y] = data;
+    console.log('adding piece for' + data.id);
     if (users[data.id] !== undefined) {
       users[data.id].score = users[data.id].score + 1;
       console.log(data.id + ' gained a point');
@@ -94,4 +130,5 @@ function sendId(socket) {
   socket.emit('send id', { id: ids });
   ids++;
 }
+
 

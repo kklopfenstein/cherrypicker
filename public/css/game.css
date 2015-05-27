@@ -1,4 +1,46 @@
 #GameCanvas {
   background-color: #009933;
+  display: inline-block;
 }
 
+#LeaderboardContainer {
+  display: inline-block;
+  vertical-align: top;
+  padding: 10px;
+}
+
+#Leaderboard ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+#Leaderboard ul li .name {
+}
+
+#Leaderboard ul li .score {
+  float: right;
+  font-weight: bold;
+}
+
+.legend-item {
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.red-legend {
+  background-color: #CC3300;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid #000;
+  display: inline-block;
+}
+
+.my-legend {
+  background-color: #800000;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid #000;
+  display: inline-block;
+}
