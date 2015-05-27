@@ -4,7 +4,7 @@ var validator = require('validator');
 var server = require('http').Server(app);
 var io = require('socket.io')(server);
 
-server.listen(80);
+server.listen(process.env.PORT || 5000);
 
 app.use(express.static('public'));
 
